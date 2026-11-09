@@ -1,0 +1,1068 @@
+跳至主要內容
+Ctrl+J
+
+建立 Bot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+name-picker-wheel.html
+
+
+
+檔案
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Name Picker – Wheel & Duck Race</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 40px;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #a78bfa, #f472b6, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 18px;
+      font-size: 0.92rem;
+      text-align: center;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 4px;
+      margin-bottom: 24px;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 10px 22px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.35);
+    }
+
+    .mode-btn:hover:not(.active) {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      max-width: 1140px;
+      width: 100%;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .wheel-section, .race-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .wheel-section.active, .race-section.active {
+      display: flex;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 360px;
+      height: 360px;
+    }
+
+    #wheelCanvas {
+      border-radius: 50%;
+      box-shadow: 0 0 0 8px #1e293b, 0 0 0 12px #8b5cf6, 0 20px 50px rgba(139, 92, 246, 0.35);
+      background: #1e293b;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    #wheelCanvas:active { transform: scale(0.98); }
+
+    .pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 32px solid #f43f5e;
+      z-index: 10;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+    }
+
+    .pointer::after {
+      content: '';
+      position: absolute;
+      top: -36px; left: -8px;
+      width: 16px; height: 16px;
+      background: #f43f5e;
+      border-radius: 50%;
+      border: 3px solid #fff;
+    }
+
+    .action-btn {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      color: white;
+      border: none;
+      padding: 14px 44px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+      transition: all 0.2s ease;
+      letter-spacing: 0.4px;
+    }
+
+    .action-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(139, 92, 246, 0.55);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .result {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #f472b6;
+      text-align: center;
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: rgba(244, 114, 182, 0.1);
+      border: 1px solid rgba(244, 114, 182, 0.25);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .result.show { opacity: 1; }
+
+    /* Duck Race */
+    .race-wrapper {
+      width: 100%;
+      max-width: 620px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+
+    .race-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .race-timer {
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #38bdf8;
+      letter-spacing: 1px;
+    }
+
+    .race-status {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    #raceCanvas {
+      display: block;
+      width: 100%;
+      height: 420px;
+      background: #0369a1;
+    }
+
+    .race-footer {
+      padding: 10px 16px;
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* Controls */
+    .controls {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .controls h2 { font-size: 1.1rem; font-weight: 600; }
+
+    .section-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: -4px;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+
+    input[type="text"] {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 13px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+      font-size: 0.92rem;
+    }
+
+    .btn:hover { background: var(--accent-hover); }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-secondary:hover {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 7px 11px;
+      font-size: 0.85rem;
+    }
+
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.15); }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover { background: #16a34a; }
+
+    textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 13px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 110px;
+      font-family: inherit;
+      outline: none;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: #64748b; }
+
+    .list-actions { display: flex; gap: 8px; }
+    .list-actions .btn { flex: 1; font-size: 0.85rem; padding: 9px 12px; }
+
+    .names-list {
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding-right: 4px;
+    }
+
+    .names-list::-webkit-scrollbar { width: 6px; }
+    .names-list::-webkit-scrollbar-track { background: #0f172a; border-radius: 3px; }
+    .names-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+    .name-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 0.93rem;
+    }
+
+    .name-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 260px;
+    }
+
+    .name-count {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: -2px;
+    }
+
+    .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .bulk-actions .btn { flex: 1; min-width: 90px; font-size: 0.84rem; padding: 9px 12px; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 18px 12px;
+      font-size: 0.9rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px 36px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+      transform: scale(0.9);
+      transition: transform 0.3s;
+    }
+
+    .modal-overlay.show .modal { transform: scale(1); }
+
+    .modal h3 {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .modal .winner-name {
+      font-size: 2.1rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+      word-break: break-word;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .modal-actions .btn {
+      min-width: 100px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 800px) {
+      .wheel-wrapper { width: 300px; height: 300px; }
+      #wheelCanvas { width: 300px; height: 300px; }
+      #raceCanvas { height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Random Name Picker</h1>
+  <p class="subtitle">Wheel or Duck Race — let chance decide</p>
+
+  <div class="mode-switch">
+    <button class="mode-btn active" data-mode="wheel">🎡 Wheel</button>
+    <button class="mode-btn" data-mode="race">🦆 Duck Race</button>
+  </div>
+
+  <div class="container">
+    <!-- WHEEL -->
+    <div class="wheel-section active" id="wheelSection">
+      <div class="wheel-wrapper">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="360" height="360"></canvas>
+      </div>
+      <button class="action-btn" id="spinBtn">SPIN</button>
+      <div class="result" id="wheelResult"></div>
+    </div>
+
+    <!-- DUCK RACE -->
+    <div class="race-section" id="raceSection">
+      <div class="race-wrapper">
+        <div class="race-header">
+          <div class="race-timer" id="raceTimer">10.0</div>
+          <div class="race-status" id="raceStatus">Ready</div>
+        </div>
+        <canvas id="raceCanvas" width="620" height="420"></canvas>
+        <div class="race-footer">First past the post · Race ends when the first duck finishes</div>
+      </div>
+      <button class="action-btn" id="raceBtn">START RACE</button>
+      <div class="result" id="raceResult"></div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+      <h2>Names</h2>
+
+      <p class="section-label">Add one name</p>
+      <div class="input-row">
+        <input type="text" id="nameInput" placeholder="Enter a name..." maxlength="40" />
+        <button class="btn" id="addBtn">Add</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="section-label">Or paste / type a list (1 name per line)</p>
+      <textarea id="listInput" placeholder="Alice&#10;Bob&#10;Charlie&#10;Diana"></textarea>
+      <div class="list-actions">
+        <button class="btn btn-success" id="applyListBtn">Apply List</button>
+        <button class="btn btn-secondary" id="appendListBtn">Append</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="bulk-actions">
+        <button class="btn btn-secondary" id="sampleBtn">Load sample</button>
+        <button class="btn btn-secondary" id="clearBtn">Clear all</button>
+      </div>
+
+      <p class="name-count" id="nameCount">0 names</p>
+
+      <div class="names-list" id="namesList">
+        <div class="empty-state">Add some names to get started</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle">And the winner is...</h3>
+      <div class="winner-name" id="winnerName"></div>
+      <div class="modal-actions">
+        <button class="btn" id="againBtn">Again</button>
+        <button class="btn btn-danger" id="removeWinnerBtn">Remove Winner</button>
+        <button class="btn btn-secondary" id="closeModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let names = [];
+    let lastWinner = null;
+    let currentMode = 'wheel';
+    let isSpinning = false;
+    let isRacing = false;
+    let currentRotation = 0;
+
+    const COLORS = [
+      '#ef4444', '#f97316', '#eab308', '#22c55e',
+      '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899',
+      '#f43f5e', '#06b6d4', '#84cc16', '#a855f7'
+    ];
+
+    const wheelCanvas = document.getElementById('wheelCanvas');
+    const wheelCtx = wheelCanvas.getContext('2d');
+    const raceCanvas = document.getElementById('raceCanvas');
+    const raceCtx = raceCanvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const raceBtn = document.getElementById('raceBtn');
+    const nameInput = document.getElementById('nameInput');
+    const listInput = document.getElementById('listInput');
+    const namesList = document.getElementById('namesList');
+    const nameCount = document.getElementById('nameCount');
+    const wheelResult = document.getElementById('wheelResult');
+    const raceResult = document.getElementById('raceResult');
+    const modal = document.getElementById('modal');
+    const winnerNameEl = document.getElementById('winnerName');
+    const modalTitle = document.getElementById('modalTitle');
+    const raceTimerEl = document.getElementById('raceTimer');
+    const raceStatusEl = document.getElementById('raceStatus');
+
+    // Mode switch
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (isSpinning || isRacing) return;
+        currentMode = btn.dataset.mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('wheelSection').classList.toggle('active', currentMode === 'wheel');
+        document.getElementById('raceSection').classList.toggle('active', currentMode === 'race');
+        if (currentMode === 'race') drawRaceIdle();
+        else drawWheel();
+      });
+    });
+
+    // ===== WHEEL =====
+    function drawWheel() {
+      const size = wheelCanvas.width;
+      const center = size / 2;
+      const radius = center - 10;
+      wheelCtx.clearRect(0, 0, size, size);
+
+      if (names.length === 0) {
+        wheelCtx.beginPath();
+        wheelCtx.arc(center, center, radius, 0, Math.PI * 2);
+        wheelCtx.fillStyle = '#1e293b';
+        wheelCtx.fill();
+        wheelCtx.strokeStyle = '#475569';
+        wheelCtx.lineWidth = 4;
+        wheelCtx.stroke();
+        wheelCtx.fillStyle = '#64748b';
+        wheelCtx.font = '600 17px Segoe UI, system-ui, sans-serif';
+        wheelCtx.textAlign = 'center';
+        wheelCtx.textBaseline = 'middle';
+        wheelCtx.fillText('Add names to spin', center, center);
+        return;
+      }
+
+      const arc = (Math.PI * 2) / names.length;
+      for (let i = 0; i < names.length; i++) {
+        const start = i * arc + currentRotation;
+        const end = start + arc;
+        wheelCtx.beginPath();
+        wheelCtx.moveTo(center, center);
+        wheelCtx.arc(center, center, radius, start, end);
+        wheelCtx.closePath();
+        wheelCtx.fillStyle = COLORS[i % COLORS.length];
+        wheelCtx.fill();
+        wheelCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+        wheelCtx.lineWidth = 2;
+        wheelCtx.stroke();
+
+        wheelCtx.save();
+        wheelCtx.translate(center, center);
+        wheelCtx.rotate(start + arc / 2);
+        wheelCtx.textAlign = 'right';
+        wheelCtx.textBaseline = 'middle';
+        wheelCtx.fillStyle = '#fff';
+        wheelCtx.font = `600 ${Math.max(11, Math.min(15, 130 / names.length))}px Segoe UI, system-ui, sans-serif`;
+        wheelCtx.shadowColor = 'rgba(0,0,0,0.5)';
+        wheelCtx.shadowBlur = 3;
+        const text = names[i].length > 13 ? names[i].slice(0, 11) + '…' : names[i];
+        wheelCtx.fillText(text, radius - 16, 0);
+        wheelCtx.restore();
+      }
+
+      wheelCtx.beginPath();
+      wheelCtx.arc(center, center, 26, 0, Math.PI * 2);
+      wheelCtx.fillStyle = '#0f172a';
+      wheelCtx.fill();
+      wheelCtx.strokeStyle = '#8b5cf6';
+      wheelCtx.lineWidth = 4;
+      wheelCtx.stroke();
+      wheelCtx.beginPath();
+      wheelCtx.arc(center, center, 7, 0, Math.PI * 2);
+      wheelCtx.fillStyle = '#8b5cf6';
+      wheelCtx.fill();
+    }
+
+    function spin() {
+      if (isSpinning || names.length === 0) return;
+      isSpinning = true;
+      spinBtn.disabled = true;
+      wheelResult.classList.remove('show');
+      lastWinner = null;
+
+      const extraSpins = 4 + Math.random() * 4;
+      const randomAngle = Math.random() * Math.PI * 2;
+      const target = currentRotation + extraSpins * Math.PI * 2 + randomAngle;
+      const startRot = currentRotation;
+      const duration = 4500 + Math.random() * 1500;
+      const t0 = performance.now();
+
+      function animate(now) {
+        const p = Math.min((now - t0) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        currentRotation = startRot + (target - startRot) * ease;
+        drawWheel();
+        if (p < 1) requestAnimationFrame(animate);
+        else {
+          currentRotation = target % (Math.PI * 2);
+          finishSpin();
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function finishSpin() {
+      isSpinning = false;
+      spinBtn.disabled = false;
+      const norm = (currentRotation % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      const arc = (Math.PI * 2) / names.length;
+      const pointerAngle = (Math.PI * 1.5 - norm + Math.PI * 2) % (Math.PI * 2);
+      const index = Math.floor(pointerAngle / arc) % names.length;
+      lastWinner = names[index];
+      wheelResult.textContent = '🎉 ' + lastWinner;
+      wheelResult.classList.add('show');
+      showWinnerModal(lastWinner, 'And the winner is...');
+    }
+
+    // ===== DUCK RACE (first past the post) =====
+    function getDuckLayout() {
+      const n = Math.max(names.length, 1);
+      const h = raceCanvas.height;
+      // Fit every duck on screen: reserve padding, compute max scale from lane height
+      const topPad = 18;
+      const bottomPad = 22;
+      const usable = h - topPad - bottomPad;
+      const laneH = usable / n;
+      // Scale so ducks never overlap vertically (body ~24px at scale 1)
+      const maxScaleByLane = Math.max(0.35, Math.min(1.15, (laneH * 0.72) / 24));
+      // Slightly smaller when many ducks so labels stay readable
+      const scale = n > 20 ? maxScaleByLane * 0.9 : maxScaleByLane;
+      return { topPad, laneH, scale };
+    }
+
+    function drawDuck(ctx, x, y, scale, color, label, showLabel) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      // Body
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(14, -6, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Beak
+      ctx.beginPath();
+      ctx.moveTo(20, -6);
+      ctx.lineTo(28, -4);
+      ctx.lineTo(20, -1);
+      ctx.closePath();
+      ctx.fillStyle = '#f97316';
+      ctx.fill();
+
+      // Eye
+      ctx.beginPath();
+      ctx.arc(17, -8, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+
+      // Wing
+      ctx.beginPath();
+      ctx.ellipse(-2, 0, 8, 5, -0.3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fill();
+
+      ctx.restore();
+
+      if (showLabel) {
+        ctx.fillStyle = '#fff';
+        const fontSize = Math.max(9, Math.min(12, 11 * scale + 2));
+        ctx.font = '600 ' + fontSize + 'px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.shadowColor = 'rgba(0,0,0,0.65)';
+        ctx.shadowBlur = 3;
+        const maxChars = scale < 0.55 ? 6 : (scale < 0.8 ? 9 : 12);
+        const short = label.length > maxChars ? label.slice(0, maxChars - 1) + '…' : label;
+        ctx.fillText(short, x, y + 14 * scale);
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    function drawRaceTrack(progressList) {
+      const w = raceCanvas.width;
+      const h = raceCanvas.height;
+      raceCtx.clearRect(0, 0, w, h);
+
+      const grad = raceCtx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#0c4a6e');
+      grad.addColorStop(0.45, '#0284c7');
+      grad.addColorStop(1, '#0ea5e9');
+      raceCtx.fillStyle = grad;
+      raceCtx.fillRect(0, 0, w, h);
+
+      // Soft wave lines
+      raceCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+      raceCtx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        raceCtx.beginPath();
+        const y = 30 + i * (h / 8);
+        for (let x = 0; x <= w; x += 18) {
+          const wave = Math.sin((x + Date.now() / 220) / 28) * 3.5;
+          if (x === 0) raceCtx.moveTo(x, y + wave);
+          else raceCtx.lineTo(x, y + wave);
+        }
+        raceCtx.stroke();
+      }
+
+      // Start line
+      raceCtx.strokeStyle = 'rgba(255,255,255,0.45)';
+      raceCtx.lineWidth = 3;
+      raceCtx.setLineDash([7, 5]);
+      raceCtx.beginPath();
+      raceCtx.moveTo(48, 8);
+      raceCtx.lineTo(48, h - 8);
+      raceCtx.stroke();
+
+      // Finish line
+      raceCtx.strokeStyle = '#fbbf24';
+      raceCtx.lineWidth = 4;
+      raceCtx.setLineDash([]);
+      raceCtx.beginPath();
+      raceCtx.moveTo(w - 36, 8);
+      raceCtx.lineTo(w - 36, h - 8);
+      raceCtx.stroke();
+
+      raceCtx.fillStyle = '#fbbf24';
+      raceCtx.font = 'bold 15px Segoe UI';
+      raceCtx.textAlign = 'center';
+      raceCtx.fillText('🏁', w - 36, 20);
+
+      if (names.length === 0) {
+        raceCtx.fillStyle = 'rgba(255,255,255,0.65)';
+        raceCtx.font = '600 18px Segoe UI';
+        raceCtx.textAlign = 'center';
+        raceCtx.fillText('Add names to race', w / 2, h / 2);
+        return;
+      }
+
+      const { topPad, laneH, scale } = getDuckLayout();
+      const maxTravel = w - 90;
+      const showLabel = names.length <= 30;
+
+      names.forEach((name, i) => {
+        const progress = progressList ? Math.min(1, progressList[i]) : 0;
+        const x = 48 + progress * maxTravel;
+        const y = topPad + laneH * i + laneH / 2;
+        const color = COLORS[i % COLORS.length];
+        drawDuck(raceCtx, x, y, scale, color, name, showLabel);
+      });
+    }
+
+    function drawRaceIdle() {
+      drawRaceTrack(null);
+      raceTimerEl.textContent = '0.0';
+      raceStatusEl.textContent = names.length ? 'Ready' : 'Add names';
+    }
+
+    function startRace() {
+      if (isRacing || names.length === 0) return;
+      isRacing = true;
+      raceBtn.disabled = true;
+      raceResult.classList.remove('show');
+      lastWinner = null;
+      raceStatusEl.textContent = 'Racing...';
+      raceTimerEl.textContent = '0.0';
+
+      // Each duck has its own continuous speed + jitter (true first-past-the-post)
+      const duckData = names.map(() => ({
+        progress: 0,
+        // Base speed: finishes roughly in 6–12s range, with variation
+        baseSpeed: 0.07 + Math.random() * 0.06,   // progress per second
+        burst: 0.02 + Math.random() * 0.04,
+        phase: Math.random() * Math.PI * 2,
+        freq: 1.8 + Math.random() * 2.5
+      }));
+
+      const startTime = performance.now();
+      let lastFrame = startTime;
+
+      function animate(now) {
+        const dt = Math.min(0.05, (now - lastFrame) / 1000); // seconds, cap for tab lag
+        lastFrame = now;
+        const elapsed = (now - startTime) / 1000;
+        raceTimerEl.textContent = elapsed.toFixed(1);
+
+        let winnerIdx = -1;
+        const progressList = duckData.map((d, idx) => {
+          // Continuous motion with sinusoidal speed variation (lead changes)
+          const speedMod = 1 + Math.sin(elapsed * d.freq + d.phase) * 0.55;
+          d.progress += d.baseSpeed * speedMod * dt;
+          // Occasional small burst near the end keeps it exciting
+          if (d.progress > 0.65) {
+            d.progress += d.burst * 0.015 * dt * 60;
+          }
+          if (d.progress >= 1 && winnerIdx === -1) {
+            winnerIdx = idx;
+            d.progress = 1;
+          }
+          return Math.min(1, d.progress);
+        });
+
+        drawRaceTrack(progressList);
+
+        if (winnerIdx !== -1) {
+          // First past the post — stop immediately
+          lastWinner = names[winnerIdx];
+          isRacing = false;
+          raceBtn.disabled = false;
+          raceStatusEl.textContent = 'Finished!';
+          raceResult.textContent = '🏆 ' + lastWinner;
+          raceResult.classList.add('show');
+          showWinnerModal(lastWinner, '🏆 First Past the Post');
+          return;
+        }
+
+        // Safety: if somehow nobody finished after 25s, pick current leader
+        if (elapsed > 25) {
+          let best = 0;
+          for (let i = 1; i < progressList.length; i++) {
+            if (progressList[i] > progressList[best]) best = i;
+          }
+          lastWinner = names[best];
+          isRacing = false;
+          raceBtn.disabled = false;
+          raceStatusEl.textContent = 'Finished!';
+          raceResult.textContent = '🏆 ' + lastWinner;
+          raceResult.classList.add('show');
+          showWinnerModal(lastWinner, '🏆 First Past the Post');
+          return;
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // ===== Shared =====
+    function showWinnerModal(name, title) {
+      modalTitle.textContent = title;
+      winnerNameEl.textContent = name;
+      modal.classList.add('show');
+    }
+
+    function updateList() {
+      nameCount.textContent = names.length + ' name' + (names.length !== 1 ? 's' : '');
+      listInput.value = names.join('\n');
+
+      if (names.length === 0) {
+        namesList.innerHTML = '<div class="empty-state">Add some names to get started</div>';
+      } else {
+        namesList.innerHTML = names.map((name, i) =>
+          '<div class="name-item"><span title="' + escapeHtml(name) + '">' + escapeHtml(name) +
+          '</span><button class="btn btn-danger" data-index="' + i + '" aria-label="Remove">✕</button></div>'
+        ).join('');
+        namesList.querySelectorAll('.btn-danger').forEach(btn => {
+          btn.addEventListener('click', () => {
+            names.splice(parseInt(btn.dataset.index, 10), 1);
+            updateList();
+          });
+        });
+      }
+
+      if (currentMode === 'wheel') drawWheel();
+      else drawRaceIdle();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function parseListText(text) {
+      return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    }
+
+    function addName(raw) {
+      const name = raw.trim();
+      if (!name) return;
+      if (names.includes(name)) {
+        nameInput.value = '';
+        nameInput.placeholder = 'Already added!';
+        setTimeout(() => nameInput.placeholder = 'Enter a name...', 1500);
+        return;
+      }
+      names.push(name);
+      nameInput.value = '';
+      updateList();
+    }
+
+    function applyList(replace) {
+      const parsed = parseListText(listInput.value);
+      if (!parsed.length) return;
+      if (replace) {
+        names = [...new Set(parsed)];
+      } else {
+        const existing = new Set(names);
+        for (const n of parsed) {
+          if (!existing.has(n)) {
+            names.push(n);
+            existing.add(n);
+          }
+        }
+      }
+      updateList();
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => addName(nameInput.value));
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addName(nameInput.value); });
+    document.getElementById('applyListBtn').addEventListener('click', () => applyList(true));
+    document.getElementById('appendListBtn').addEventListener('click', () => applyList(false));
+    spinBtn.addEventListener('click', spin);
+    wheelCanvas.addEventListener('click', spin);
+    raceBtn.addEventListener('click', startRace);
+
+    document.getElementById('sampleBtn').addEventListener('click', () => {
+      names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan', 'Fiona', 'George', 'Hannah'];
+      updateList();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      if (names.length && confirm('Clear all names?')) {
+        names = [];
+        lastWinner = null;
+        wheelResult.classList.remove('show');
+        raceResult.classList.remove('show');
+        updateList();
+      }
+    });
+
+    document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('show'));
+    document.getElementById('againBtn').addEventListener('click', () => {
+      modal.classList.remove('show');
+      if (currentMode === 'wheel') spin();
+      else startRace();
+    });
+    document.getElementById('removeWinnerBtn').addEventListener('click', () => {
+      if (!lastWinner) return;
+      const idx = names.indexOf(lastWinner);
+      if (idx !== -1) names.splice(idx, 1);
+      updateList();
+      modal.classList.remove('show');
+      wheelResult.classList.remove('show');
+      raceResult.classList.remove('show');
+      lastWinner = null;
+    });
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+
+    updateList();
+  </script>
+</body>
+</html>
+Grok 已完成回覆
+Random Name Picker Wheel UI - Grok
