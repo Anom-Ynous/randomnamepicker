@@ -1,1 +1,1 @@
-Link to the app: https://bit.ly/wheelpick
+Link to the app: https://bit.ly/name_pick
